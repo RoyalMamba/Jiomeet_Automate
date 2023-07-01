@@ -1,86 +1,65 @@
+# _____________________________WORKING CODE USING LOOP _________________________________
+# ****************************************************************************************
+# *****************************************************************************************
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.Edge.options import Options
-from selenium.webdriver import EdgeOptions
-
-import time
 
 # Set the URL of the meeting
-meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=0018721439&pwd=C9Cmk"
+meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=7863373088&pwd=7Fte4"
 
 # Set the number of guest users to simulate
 num_users = 50
 
-# Set the path to the Chrome webdriver (you can use other browsers as well)
+# Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
 
-# Set up the browser options
-options = Options()
-# options.add_argument("--headless")      # Run in headless mode, no browser window will be opened
-options.add_argument("--use-fake-ui-for-media-stream")  # Grant permission without user prompt
-options.add_argument("--use-fake-device-for-media-stream")  # Use fake device for media streams
-options.add_argument("--disable-extensions")  # Disable extensions to save resources
-options.add_argument("--disable-gpu")  # Disable GPU to save resources
-
-
-# _______________________________EDGE_PERMISSIONS________________________________
-# op = webdriver.EdgeOptions()
-# op.add_argument('headless')
-# op.add_argument("allow-file-access-from-files")
-# op.add_argument("use-fake-device-for-media-stream")
-# op.add_argument("use-fake-ui-for-media-stream")
-# op.add_argument("--disable-features=EnableEphemeralFlashPermission")
-# op.add_argument('--disable-notifications')
-# op.add_argument('--disable-extensions')
-# op.add_argument("--disable-extensions")  # Disable extensions to save resources
-# op.add_argument("--disable-gpu")  # Disable GPU to save resources
-
-
-# profile = {
-#     'profile.default_content_setting_values.media_stream_mic' : 1 ,
-#     'profile.default_content_setting_values.media_stream_camera' : 1,
-# }
-
-# op.add_experimental_option('prefs', profile)
-# driver = webdriver.Edge(options = op)
-
-# _______________________________________________________________________________
-
 # Set up the browser driver
-driver = webdriver.Chrome(options=options)
+driver_options = webdriver.ChromeOptions()
+driver_options.add_argument('--headless')
+driver_options.add_argument("--use-fake-ui-for-media-stream")
+driver_options.add_argument("--use-fake-device-for-media-stream")
+driver_options.add_argument("--disable-extensions")
+driver_options.add_argument("--disable-gpu")
 
-# driver.maximize_window()
+# Create a list to store the driver instances
+drivers = []
+
+# Calculate the number of windows required
+num_windows = -(-num_users // 15)  # Round up division
+
 try:
-    # Open the initial browser window and join the meeting
-    driver.get(meeting_url)
+    for i in range(num_windows):
+        # Open a new browser window
+        driver = webdriver.Chrome(options=driver_options)
+        drivers.append(driver)
 
-    # Fill in the form and click the join button
-    for i in range(num_users):
-        # Wait for the meeting join page to load
-        WebDriverWait(driver, 20).until(EC.title_contains("JioMeet"))
+        # Open 15 tabs in the window and join the meeting
+        for j in range(15):
+            # Open a new tab
+            driver.execute_script("window.open('about:blank', '_blank');")
+            driver.switch_to.window(driver.window_handles[j + 1])
 
-        # Simulate entering the user's name as a guest
-        name_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "name")))
-        name_field.clear()
-        name_field.send_keys(f"Guest User {i}")
+            # Join the meeting in the tab
+            driver.get(meeting_url)
 
-        # Click the join button to join the meeting
-        join_button = driver.find_element(By.XPATH, "//button[@type='submit']")
-        join_button.click()
+            name_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "name")))
+            name_field.clear()
+            name_field.send_keys(f"Guest User {i * 15 + j + 1}")
 
-        # Open a new tab for the next user
-        if i < num_users - 1:
-            driver.execute_script("window.open();")  # Open a new tab
-            driver.switch_to.window(driver.window_handles[i + 1])  # Switch to the new tab
-            driver.get(meeting_url)  # Load the meeting URL
+            join_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+            join_button.click()
 
     # Stay in the meeting indefinitely without refreshing
     while True:
-        time.sleep(10)  # Sleep for an interval to keep the script running
+        pass
 
 finally:
-    # Close all browser windows and quit the driver
-    driver.quit()
+    # Close all browser windows and quit the drivers
+    for driver in drivers:
+        driver.quit()
+# ******************************************************************************************************
+# *******************************************************************************************************
+# ________________________________________________________________________________________________________
