@@ -3,10 +3,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.Edge.options import Options
+from selenium.webdriver import EdgeOptions
+
 import time
 
 # Set the URL of the meeting
-meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=6324043443&pwd=r8naH"
+meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=0018721439&pwd=C9Cmk"
 
 # Set the number of guest users to simulate
 num_users = 50
@@ -22,9 +25,34 @@ options.add_argument("--use-fake-device-for-media-stream")  # Use fake device fo
 options.add_argument("--disable-extensions")  # Disable extensions to save resources
 options.add_argument("--disable-gpu")  # Disable GPU to save resources
 
+
+# _______________________________EDGE_PERMISSIONS________________________________
+# op = webdriver.EdgeOptions()
+# op.add_argument('headless')
+# op.add_argument("allow-file-access-from-files")
+# op.add_argument("use-fake-device-for-media-stream")
+# op.add_argument("use-fake-ui-for-media-stream")
+# op.add_argument("--disable-features=EnableEphemeralFlashPermission")
+# op.add_argument('--disable-notifications')
+# op.add_argument('--disable-extensions')
+# op.add_argument("--disable-extensions")  # Disable extensions to save resources
+# op.add_argument("--disable-gpu")  # Disable GPU to save resources
+
+
+# profile = {
+#     'profile.default_content_setting_values.media_stream_mic' : 1 ,
+#     'profile.default_content_setting_values.media_stream_camera' : 1,
+# }
+
+# op.add_experimental_option('prefs', profile)
+# driver = webdriver.Edge(options = op)
+
+# _______________________________________________________________________________
+
 # Set up the browser driver
 driver = webdriver.Chrome(options=options)
-driver.maximize_window()
+
+# driver.maximize_window()
 try:
     # Open the initial browser window and join the meeting
     driver.get(meeting_url)
