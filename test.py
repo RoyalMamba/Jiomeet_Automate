@@ -3,6 +3,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+# import logging 
+
+# # logging.basicConfig(filename='jiomeet_stress.log')
 
 class MeetingSimulator:
     def __init__(self, meeting_url, num_users, webdriver_path):
@@ -14,7 +17,7 @@ class MeetingSimulator:
     
     def _setup_driver_options(self):
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument("--use-fake-ui-for-media-stream")
         options.add_argument("--use-fake-device-for-media-stream")
         options.add_argument("--disable-extensions")
@@ -27,7 +30,7 @@ class MeetingSimulator:
         for user in range(len(handles)):
             try :
                 driver.switch_to.window(driver.window_handles[user])
-                name = f"Guest User {(user-1) + driver_index *5}"
+                name = f"Guest User {(user-1) + driver_index *6}"
                 name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
                 name_field.clear()
                 name_field.send_keys(name)
@@ -58,13 +61,13 @@ class MeetingSimulator:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             windows = 0
             futures = []
-            for i in range(0, self.num_users,5):
+            for i in range(0, self.num_users,6):
                 # Open a new window
                 driver = webdriver.Chrome(options=self.options)
                 self.drivers.append(driver)
 
                 # Calculate the number of users for this iteration
-                num_users_current = min(5, self.num_users - i)
+                num_users_current = min(6, self.num_users - i)
 
                 # Open new tabs in the window and visit the meeting URL
                 for _ in range(num_users_current):
@@ -74,13 +77,15 @@ class MeetingSimulator:
                 future = executor.submit(self.join_meeting, driver, windows)
                 futures.append(future)
                 windows+=1 
-                
-            while True:
-                for future in concurrent.futures.as_completed(futures):
-                    executedDriver = future.result()
-                    # self.switch_meetings(executedDriver)
-                    executor.submit(self.switch_meetings, executedDriver)
-
+            
+        while True:
+            # for future in concurrent.futures.as_completed(futures):
+            #     executedDriver = future.result()
+            #     # self.switch_meetings(executedDriver)
+            #     executor.submit(self.switch_meetings, executedDriver)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                keep_alive_future = [executor.submit(self.switch_meetings,future.result()) for future in concurrent.futures.as_completed(futures)]
+                concurrent.futures.wait(futures)
 
         # Stay in the meeting indefinitely without refreshing
     def cleanup(self):
@@ -91,10 +96,10 @@ class MeetingSimulator:
 meeting_url = input('Enter the link: ')
 
 # Set the number of guest users to simulate
-num_users = 24
+num_users = 12
 
 # Set the path to the Chrome webdriver
-webdriver_path = r"C:\Users\Saurabh15.Yadav\Desktop\jiomeet\chromedriver.exe"
+webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
 
 # Create an instance of MeetingSimulator and simulate the meeting
 simulator = MeetingSimulator(meeting_url, num_users, webdriver_path)
