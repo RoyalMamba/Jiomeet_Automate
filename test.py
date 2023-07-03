@@ -24,56 +24,73 @@ class MeetingSimulator:
     def join_meeting(self, driver, driver_index):
         handles = driver.window_handles
         
-        for user in range(1, len(handles) + 1):
-            driver.switch_to.window(driver.window_handles[user])
+        for user in range(len(handles)):
+            try :
+                driver.switch_to.window(driver.window_handles[user])
+                name = f"Guest User {(user-1) + driver_index *6}"
+                name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
+                name_field.clear()
+                name_field.send_keys(name)
 
-            name = f"Guest User {user + driver_index * 15}"
-            name_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "name")))
-            name_field.clear()
-            name_field.send_keys(name)
-
-            join_button = driver.find_element(By.XPATH, "//button[@type='submit']")
-            join_button.click()
+                join_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+                join_button.click()
+            except:
+                pass 
+        return driver
         
-        while True:
-            pass
+    def switch_meetings(self, driver):
+        handles = driver.window_handles
+        for handle in handles:
+            driver.switch_to.window(handle)
+            try:
+                info = driver.find_element(By.XPATH, '/html/body/div[1]/app-root/div/div/div/div/app-conference/app-call/div[1]/div/div[1]/div[2]/app-call-controls-v3/div[1]/div[1]/div/div/div/div[2]/app-call-info-v2/div[1]')
+                info.click()
+            except:
+                pass
     
     def simulate(self):
-        # Open the main browser window
-        main_driver = webdriver.Chrome(options=self.options)
-        self.drivers.append(main_driver)
-        main_driver.get(self.meeting_url)
+        # # Open the main browser window
+        # main_driver = webdriver.Chrome(options=self.options)
+        # self.drivers.append(main_driver)
+        # main_driver.get(self.meeting_url)
 
         # Open tabs in each window and join the meeting in parallel
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for i in range(0, self.num_users, 15):
+            windows = 0
+            futures = []
+            for i in range(0, self.num_users,6):
                 # Open a new window
                 driver = webdriver.Chrome(options=self.options)
                 self.drivers.append(driver)
 
                 # Calculate the number of users for this iteration
-                num_users_current = min(15, self.num_users - i)
+                num_users_current = min(6, self.num_users - i)
 
                 # Open new tabs in the window and visit the meeting URL
                 for _ in range(num_users_current):
                     driver.execute_script(f"window.open('{self.meeting_url}', '_blank');")
 
                 # Execute the join operation in parallel
-                futures = [executor.submit(self.join_meeting, driver, driver_index) for driver_index, driver in enumerate(self.drivers)]
+                future = executor.submit(self.join_meeting, driver, windows)
+                futures.append(future)
+                windows+=1 
+                
+            while True:
+                for future in concurrent.futures.as_completed(futures):
+                    executedDriver = future.result()
+                    self.switch_meetings(executedDriver)
+
 
         # Stay in the meeting indefinitely without refreshing
-        while True:
-            pass
-    
     def cleanup(self):
         for driver in self.drivers:
             driver.quit()
 
 # Set the URL of the meeting
-meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=2066439537&pwd=wsC71"
+meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=8194046279&pwd=1KcEt"
 
 # Set the number of guest users to simulate
-num_users = 50
+num_users = 36
 
 # Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
