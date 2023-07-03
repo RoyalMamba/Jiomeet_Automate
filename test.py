@@ -91,7 +91,7 @@ class MeetingSimulator:
 meeting_url = input('Enter the link: ')
 
 # Set the number of guest users to simulate
-num_users = 24
+num_users = 36
 
 # Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh15.Yadav\Desktop\jiomeet\chromedriver.exe"
