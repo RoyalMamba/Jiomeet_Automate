@@ -3,9 +3,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import keyboard
 # import logging 
 
 # # logging.basicConfig(filename='jiomeet_stress.log')
+
 
 class MeetingSimulator:
     def __init__(self, meeting_url, num_users, webdriver_path):
@@ -14,6 +16,7 @@ class MeetingSimulator:
         self.webdriver_path = webdriver_path
         self.drivers = []
         self.options = self._setup_driver_options()
+        self.terminate_automation = False
     
     def _setup_driver_options(self):
         options = webdriver.ChromeOptions()
@@ -77,20 +80,24 @@ class MeetingSimulator:
                 future = executor.submit(self.join_meeting, driver, windows)
                 futures.append(future)
                 windows+=1 
-            
-        while True:
+        keyboard.add_hotkey('esc', self.terminate_simulation) 
+        while not self.terminate_automation:
             # for future in concurrent.futures.as_completed(futures):
             #     executedDriver = future.result()
             #     # self.switch_meetings(executedDriver)
             #     executor.submit(self.switch_meetings, executedDriver)
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                keep_alive_future = [executor.submit(self.switch_meetings,future.result()) for future in concurrent.futures.as_completed(futures)]
+                keep_alive_future = [executor.submit(self.switch_meetings, future.result()) for future in concurrent.futures.as_completed(futures)]
                 concurrent.futures.wait(futures)
 
         # Stay in the meeting indefinitely without refreshing
     def cleanup(self):
         for driver in self.drivers:
             driver.quit()
+
+    def terminate_simulation(self):
+        self.terminate_automation = True
+
 
 # Set the URL of the meeting
 meeting_url = input('Enter the link: ')
