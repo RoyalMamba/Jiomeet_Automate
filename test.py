@@ -4,6 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import keyboard
+import logging 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -14,6 +16,7 @@ class MeetingSimulator:
         self.webdriver_path = webdriver_path
         self.drivers = []
         self.options = self._setup_driver_options()
+        self.terminate_automation = False
     
     def _setup_driver_options(self):
         options = webdriver.ChromeOptions()
@@ -27,12 +30,11 @@ class MeetingSimulator:
     def join_meeting(self, driver, driver_index):
         handles = driver.window_handles
         
-        for user in range(1, len(handles) + 1):
-            try:
+        for user in range(len(handles)):
+            try :
                 driver.switch_to.window(driver.window_handles[user])
-
-                name = f"Guest User {user + driver_index * 15}"
-                name_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "name")))
+                name = f"Guest User {(user-1) + driver_index *6}"
+                name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
                 name_field.clear()
                 name_field.send_keys(name)
 
@@ -41,59 +43,81 @@ class MeetingSimulator:
                 logging.info(f"User {name} joined the meeting successfully.")
             except Exception as e:
                 logging.error(f"An error occurred while joining the meeting: {str(e)}", exc_info=True)
+        return driver
         
-        while True:
-            logging.warning("Waiting indefinitely in the meeting.")
+    def switch_meetings(self, driver):
+        handles = driver.window_handles
+        for handle in handles:
+            driver.switch_to.window(handle)
+            try:
+                info = driver.find_element(By.XPATH, '/html/body/div[1]/app-root/div/div/div/div/app-conference/app-call/div[1]/div/div[1]/div[2]/app-call-controls-v3/div[1]/div[1]/div/div/div/div[2]/app-call-info-v2/div[1]')
+                info.click()
+            except:
+                pass           
     
     def simulate(self):
-        try:
-            # Open the main browser window
-            main_driver = webdriver.Chrome(options=self.options)
-            self.drivers.append(main_driver)
-            main_driver.get(self.meeting_url)
-            logging.info("Main browser window opened.")
+        # # Open the main browser window
+        # main_driver = webdriver.Chrome(options=self.options)
+        # self.drivers.append(main_driver)
+        # main_driver.get(self.meeting_url)
 
             # Open tabs in each window and join the meeting in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            windows = 0
+            futures = []
+            for i in range(0, self.num_users,6):
+                # Open a new window
+                driver = webdriver.Chrome(options=self.options)
+                self.drivers.append(driver)
+                logging.info("New browser window opened.")
+
+                # Calculate the number of users for this iteration
+                num_users_current = min(6, self.num_users - i)
+
+                # Open new tabs in the window and visit the meeting URL
+                for _ in range(num_users_current):
+                    driver.execute_script(f"window.open('{self.meeting_url}', '_blank');")
+                logging.info(f"{num_users_current} tabs opened in the browser window.")
+
+                # Execute the join operation in parallel
+                future = executor.submit(self.join_meeting, driver, windows)
+                futures.append(future)
+                windows+=1 
+        keyboard.add_hotkey('esc', self.terminate_simulation) 
+        while not self.terminate_automation:
+            # for future in concurrent.futures.as_completed(futures):
+            #     executedDriver = future.result()
+            #     # self.switch_meetings(executedDriver)
+            #     executor.submit(self.switch_meetings, executedDriver)
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                for i in range(0, self.num_users, 15):
-                    # Open a new window
-                    driver = webdriver.Chrome(options=self.options)
-                    self.drivers.append(driver)
-                    logging.info("New browser window opened.")
+                keep_alive_future = [executor.submit(self.switch_meetings, future.result()) for future in concurrent.futures.as_completed(futures)]
+                concurrent.futures.wait(futures)
 
-                    # Calculate the number of users for this iteration
-                    num_users_current = min(15, self.num_users - i)
-
-                    # Open new tabs in the window and visit the meeting URL
-                    for _ in range(num_users_current):
-                        driver.execute_script(f"window.open('{self.meeting_url}', '_blank');")
-                    logging.info(f"{num_users_current} tabs opened in the browser window.")
-
-                    # Execute the join operation in parallel
-                    futures = [executor.submit(self.join_meeting, driver, driver_index) for driver_index, driver in enumerate(self.drivers)]
-
-            # Stay in the meeting indefinitely without refreshing
-            while True:
-                logging.critical("Simulation running indefinitely.")
-        except Exception as e:
-            logging.error(f"An error occurred during the simulation: {str(e)}", exc_info=True)
-    
     def cleanup(self):
+        logging.info("Browser windows cleaned up and closing the program.")
         for driver in self.drivers:
             driver.quit()
-        logging.info("Browser windows cleaned up.")
 
-if __name__ == "__main__":
-    # Set the URL of the meeting
-    meeting_url = "https://jiomeetpro.jio.com/shortener?meetingId=2066439537&pwd=wsC71"
+    def terminate_simulation(self):
+        self.terminate_automation = True
 
-    # Set the number of guest users to simulate
-    num_users = 50
 
-    # Set the path to the Chrome webdriver
-    webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
+# Set the URL of the meeting
+meeting_url = input('Enter the link: ')
 
-    # Create an instance of MeetingSimulator and simulate the meeting
+# Set the number of guest users to simulate
+num_users = 12
+
+# Set the path to the Chrome webdriver
+webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
+
+# Create an instance of MeetingSimulator and simulate the meeting
+
+if __name__ == '__main__':
     simulator = MeetingSimulator(meeting_url, num_users, webdriver_path)
-    simulator.simulate()
-    simulator.cleanup()
+    try:
+        simulator.simulate()
+    except Exception as e:
+        logging.error(f"An error occurred during the simulation: {str(e)}", exc_info=True)
+    finally:
+        simulator.cleanup()
