@@ -30,11 +30,7 @@ class MeetingSimulator:
         for user in range(len(handles)):
             try :
                 driver.switch_to.window(driver.window_handles[user])
-<<<<<<< HEAD
                 name = f"Guest User {(user-1) + driver_index *6}"
-=======
-                name = f"Guest User {(user-1) + driver_index *5}"
->>>>>>> 8f0dd104a3413d8d0fc387de9ccf8969c483a2e9
                 name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
                 name_field.clear()
                 name_field.send_keys(name)
@@ -65,21 +61,13 @@ class MeetingSimulator:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             windows = 0
             futures = []
-<<<<<<< HEAD
             for i in range(0, self.num_users,6):
-=======
-            for i in range(0, self.num_users,5):
->>>>>>> 8f0dd104a3413d8d0fc387de9ccf8969c483a2e9
                 # Open a new window
                 driver = webdriver.Chrome(options=self.options)
                 self.drivers.append(driver)
 
                 # Calculate the number of users for this iteration
-<<<<<<< HEAD
                 num_users_current = min(6, self.num_users - i)
-=======
-                num_users_current = min(5, self.num_users - i)
->>>>>>> 8f0dd104a3413d8d0fc387de9ccf8969c483a2e9
 
                 # Open new tabs in the window and visit the meeting URL
                 for _ in range(num_users_current):
@@ -89,7 +77,6 @@ class MeetingSimulator:
                 future = executor.submit(self.join_meeting, driver, windows)
                 futures.append(future)
                 windows+=1 
-<<<<<<< HEAD
             
         while True:
             # for future in concurrent.futures.as_completed(futures):
@@ -99,15 +86,6 @@ class MeetingSimulator:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 keep_alive_future = [executor.submit(self.switch_meetings,future.result()) for future in concurrent.futures.as_completed(futures)]
                 concurrent.futures.wait(futures)
-=======
-                
-            while True:
-                for future in concurrent.futures.as_completed(futures):
-                    executedDriver = future.result()
-                    # self.switch_meetings(executedDriver)
-                    executor.submit(self.switch_meetings, executedDriver)
-
->>>>>>> 8f0dd104a3413d8d0fc387de9ccf8969c483a2e9
 
         # Stay in the meeting indefinitely without refreshing
     def cleanup(self):
@@ -118,11 +96,7 @@ class MeetingSimulator:
 meeting_url = input('Enter the link: ')
 
 # Set the number of guest users to simulate
-<<<<<<< HEAD
 num_users = 12
-=======
-num_users = 36
->>>>>>> 8f0dd104a3413d8d0fc387de9ccf8969c483a2e9
 
 # Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
