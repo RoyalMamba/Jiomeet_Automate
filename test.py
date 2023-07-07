@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import keyboard
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", filename="jiomeet_automate.log")
 
@@ -32,8 +33,8 @@ class MeetingSimulator:
         for user, handle in enumerate(handles[1:]):
             try:
                 driver.switch_to.window(handle)
-                name = f"Guest User {((user-1) + driver_index *6)+2}"
-                name_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "name")))
+                name = f"Guest User {((user-1) + driver_index *maximum_tabs)+2}"
+                name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
                 name_field.clear()
                 name_field.send_keys(name)
 
@@ -44,19 +45,19 @@ class MeetingSimulator:
                 driver.execute_script(f"document.title = '{tab_name}'")
             except Exception as e:
                 # logging.error(f"An error occurred while joining the meeting: {str(e)}", exc_info=True)
-                logging.warning(f"An error occurred while joining the meeting: Possibly clicking on blank data; tab")
+                logging.warning(f"An error occurred while joining the meeting: Failed to join {name}")
 
-        return driver
+        return driver,driver_index
         
-    def switch_meetings(self, driver):
+    def switch_meetings(self, driver, driver_index):
         handles = driver.window_handles
-        for handle in handles[1:]:
+        for handleindex, handle in enumerate(handles[1:]):
             driver.switch_to.window(handle)
             try:
                 info = driver.find_element(By.XPATH, '/html/body/div[1]/app-root/div/div/div/div/app-conference/app-call/div[1]/div/div[1]/div[2]/app-call-controls-v3/div[1]/div[1]/div/div/div/div[2]/app-call-info-v2/div[1]')
                 info.click()
             except:
-                logging.warning('Unable to find the element in the page.')          
+                logging.warning(f'Unable to find the element in window: {driver_index} Tab: {handleindex+1}')          
     
     def simulate(self):
         # # Open the main browser window
@@ -68,14 +69,14 @@ class MeetingSimulator:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             windows = 0
             futures = []
-            for i in range(0, self.num_users,6):
+            for i in range(0, self.num_users,maximum_tabs):
                 # Open a new window
                 driver = webdriver.Chrome(options=self.options)
                 self.drivers.append(driver)
                 logging.info("New browser window opened.")
 
                 # Calculate the number of users for this iteration
-                num_users_current = min(6, self.num_users - i)
+                num_users_current = min(maximum_tabs, self.num_users - i)
 
                 # Open new tabs in the window and visit the meeting URL
                 for _ in range(num_users_current):
@@ -94,8 +95,10 @@ class MeetingSimulator:
             #     # self.switch_meetings(executedDriver)
             #     executor.submit(self.switch_meetings, executedDriver)
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                keep_alive_future = [executor.submit(self.switch_meetings, future.result()) for future in concurrent.futures.as_completed(futures)]
-                concurrent.futures.wait(futures)
+                keep_alive_future = [executor.submit(self.switch_meetings, *future.result()) for future in concurrent.futures.as_completed(futures)]
+                concurrent.futures.wait(keep_alive_future)
+                time.sleep(10)
+
 
     def cleanup(self):
         logging.info("Browser windows cleaned up and closing the program using soft termination.\n\n\n")
@@ -108,9 +111,9 @@ class MeetingSimulator:
 
 # Set the URL of the meeting
 meeting_url = input('Enter the link: ')
-
+maximum_tabs = 8
 # Set the number of guest users to simulate
-num_users = 12
+num_users = 24
 
 # Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
