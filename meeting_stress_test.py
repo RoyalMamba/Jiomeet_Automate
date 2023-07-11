@@ -33,7 +33,8 @@ class MeetingSimulator:
         for user, handle in enumerate(handles[1:]):
             try:
                 driver.switch_to.window(handle)
-                name = f"Guest User {((user-1) + driver_index *maximum_tabs)+2}"
+                userNumber = ((user-1) + driver_index *maximum_tabs)+2
+                name = f"{unique_alphabet} {userNumber} Guest User"
                 name_field = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "name")))
                 name_field.clear()
                 name_field.send_keys(name)
@@ -41,7 +42,7 @@ class MeetingSimulator:
                 join_button = driver.find_element(By.XPATH, "//button[@type='submit']")
                 join_button.click()
                 logging.info(f"User {name} joined the meeting successfully.")
-                tab_name = name[6:]
+                tab_name = name
                 driver.execute_script(f"document.title = '{tab_name}'")
             except Exception as e:
                 # logging.error(f"An error occurred while joining the meeting: {str(e)}", exc_info=True)
@@ -111,10 +112,10 @@ class MeetingSimulator:
 
 # Set the URL of the meeting
 meeting_url = input('Enter the link: ')
+num_users = int(input("Enter the number of users you want to join with:    "))
 maximum_tabs = 8
+unique_alphabet = input("Enter unique identification letter:    ")
 # Set the number of guest users to simulate
-num_users = 12
-
 # Set the path to the Chrome webdriver
 webdriver_path = r"C:\Users\Saurabh16.Yadav\Desktop\jiomeet\chromedriver.exe"
 
